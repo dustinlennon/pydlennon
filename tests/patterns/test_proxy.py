@@ -150,3 +150,10 @@ class ProxyTestCase(unittest.TestCase):
 
         self.assertEqual(xyzzy.g(), "42.foo")
         self.assertEqual(xyzzy.c(), "42.Foo")
+
+
+# -----------------------------------------------------------------------------
+
+if __name__ == '__main__':
+    # python3 -m unittest -b tests/patterns/test_proxy.py
+    pass

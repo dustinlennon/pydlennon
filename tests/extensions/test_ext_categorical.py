@@ -157,3 +157,9 @@ class ProxyTestCase(unittest.TestCase):
                                     '11    female\n' \
                                     'dtype: wrapped_category')
 
+
+# -----------------------------------------------------------------------------
+
+if __name__ == '__main__':
+    # python3 -m unittest -b tests/extensions/test_ext_categorical.py
+    pass
