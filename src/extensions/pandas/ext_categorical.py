@@ -29,6 +29,7 @@ class ExtCategoricalDtype(xpd.PandasExtensionDtype):
         self._cat_dtype = xpd.CategoricalDtype(self._ext[0], *args, **kw)
 
     def __call__(self, srcidx):
+        self._logger.info("ExtCategoricalDtype.__call__")
         obj = object.__new__( type(self) )
         obj._ext = self._ext
         obj._cat_dtype = xpd.CategoricalDtype(self._ext[srcidx], ordered = self._cat_dtype.ordered)
@@ -36,6 +37,7 @@ class ExtCategoricalDtype(xpd.PandasExtensionDtype):
 
     @classmethod 
     def build_from_existing(cls, ext, srcidx, *args, **Kw):
+        cls._logger.info("ExtCategoricalDtype.build_from_existing")
         obj = object.__new__(cls)
         obj._ext = ext
         obj._cat_dtype = xpd.CategoricalDtype(obj._ext[srcidx], *args, **Kw)
@@ -43,12 +45,14 @@ class ExtCategoricalDtype(xpd.PandasExtensionDtype):
 
     @classmethod
     def build_default(cls):
+        cls._logger.info("ExtCategoricalDtype.build_default")
         obj = object.__new__(cls)
         obj._cat_dtype = xpd.CategoricalDtype(ordered=False)
         return obj
 
     @classmethod
     def construct_array_type(cls):
+        cls._logger.info("ExtCategoricalDtype.construct_array_type")
         return ExtCategorical
 
 
@@ -78,12 +82,14 @@ class ExtCategorical(xpd.ExtensionArray):
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         # pandas.core.arrays.categorical.py:387
+        cls._logger.info("ExtCategorical._from_sequence")
         return ExtCategorical(scalars, dtype=dtype)
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, *, dtype, copy=False):
         # pandas.io.parsers.py:1797; pandas.core.arrays.categorical.py:463
-        # print("[D]ExtCategorical<class>._from_sequence_of_strings")
+        cls._logger.info("ExtCategorical._from_sequence_of_strings")
+
         cats = xpd.Index(strings).unique().dropna()
         inferred_categories = cats
         inferred_codes = cats.get_indexer(strings)
@@ -110,6 +116,7 @@ class ExtCategorical(xpd.ExtensionArray):
     @classmethod
     def _concat_same_type(cls, to_union, axis=0):
         # pandas.core.dtypes.concat.py:175
+        cls._logger.info("ExtCategorical._concat_same_type")
 
         sort_categories = False
         ignore_order = False

@@ -81,19 +81,25 @@ class Proxy(object):
         self._delegate_attrs    = delegate_attrs
         self._logging_level     = logging_level
 
-    def _logger(self, klass):
+    # def _logger(self, klass):
+    #     logger_id = "{0}.{1}".format(__name__, klass.__name__)
+    #     logger = logging.getLogger( logger_id ) 
+    #     return logger
+
+    def _set_logger(self, klass):
         logger_id = "{0}.{1}".format(__name__, klass.__name__)
         logger = logging.getLogger( logger_id ) 
+        logger.setLevel( self._logging_level)
+        setattr(klass, "_logger", logger)
         return logger
+
 
     def __call__(self, klass):
         # Add the delegate type to the class
         setattr(klass, self._delegate_typename, self._delegate_type)
 
         # Add the logger to the class
-        logger = self._logger( klass )
-        logger.setLevel( self._logging_level )
-        setattr(klass, "_logger", logger)
+        logger = self._set_logger( klass )
 
         # Add a descriptor for each delegate attribute to the class
         for attr in self._delegate_attrs:

@@ -14,7 +14,8 @@ from pandas import (
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_timedelta64_dtype,
-    is_categorical_dtype
+    is_categorical_dtype,
+    is_dtype_equal
 )
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries

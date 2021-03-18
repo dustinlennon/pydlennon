@@ -19,9 +19,6 @@ def _abline(self, intercept, slope, **kwargs):
     self._request_autoscale_view()
     return line
 
-setattr(matplotlib.axes.Subplot, 'abline', _abline)
-
-
 # setattr(matplotlib.pyplot, 'abline', abline)
 # def abline(intercept, slope, **kwargs):
 #     return gca().abline(intercept, slope, **kwargs)
