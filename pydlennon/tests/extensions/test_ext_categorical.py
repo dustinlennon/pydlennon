@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 import io
 
-from extensions.pandas.ext_categorical import ExtCategoricalDtype, ExtCategorical
+from pydlennon.extensions.pandas.ext_categorical import ExtCategoricalDtype, ExtCategorical
 
 
 _testdata = """
@@ -29,7 +29,7 @@ class ProxyTestCase(unittest.TestCase):
         def _read_csv(**_kw):
             fp = io.StringIO( _testdata )
             kw = {
-                'index_col' : 0,
+                'index_col' : 'record_id',
                 'header' : 0,
                 'names' : [
                     'record_id',
@@ -50,6 +50,11 @@ class ProxyTestCase(unittest.TestCase):
         self.xcdtype_gender =   ExtCategoricalDtype( [
                                     (1, 'male'),
                                     (2, 'female')
+                                ])
+
+        self.xcdtype_race   =   ExtCategoricalDtype( [
+                                    (1, 'white'),
+                                    (2, 'black')
                                 ])
 
         self.xcdtype_educ =     ExtCategoricalDtype([
@@ -161,5 +166,11 @@ class ProxyTestCase(unittest.TestCase):
 # -----------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    # python3 -m unittest -b tests/extensions/test_ext_categorical.py
-    pass
+    """
+    # Run from tests subdirectory
+    $ python3 -m unittest discover -b -s ..
+
+    # OR, from package root directory
+    $ python3 -m unittest discover
+    """
+    unittest.main()

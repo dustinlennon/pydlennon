@@ -81,11 +81,6 @@ class Proxy(object):
         self._delegate_attrs    = delegate_attrs
         self._logging_level     = logging_level
 
-    # def _logger(self, klass):
-    #     logger_id = "{0}.{1}".format(__name__, klass.__name__)
-    #     logger = logging.getLogger( logger_id ) 
-    #     return logger
-
     def _set_logger(self, klass):
         logger_id = "{0}.{1}".format(__name__, klass.__name__)
         logger = logging.getLogger( logger_id ) 

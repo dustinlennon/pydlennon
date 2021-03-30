@@ -2,7 +2,7 @@ import unittest
 import logging
 import sys
 
-from patterns.proxy import Proxy
+from pydlennon.patterns.proxy import Proxy
 
 class _NamedMixin(object):
     @property
@@ -64,7 +64,7 @@ class ProxyTestCase(unittest.TestCase):
 
     def test_decorator_warnings(self):
 
-        with self.assertLogs("patterns.proxy.FooProxy", level='WARNING') as cm:
+        with self.assertLogs("pydlennon.patterns.proxy.FooProxy", level='WARNING') as cm:
 
             @Proxy("foo", self.Foo, ['bar', "g"], logging_level = logging.WARNING)
             class FooProxy(object):
@@ -75,8 +75,8 @@ class ProxyTestCase(unittest.TestCase):
                     pass
 
         self.assertEqual(cm.output, [
-            "WARNING:patterns.proxy.FooProxy:The delegate type 'Foo' does not provide attribute 'bar'.",
-            "WARNING:patterns.proxy.FooProxy:Overwriting an existing attribute 'g'."
+            "WARNING:pydlennon.patterns.proxy.FooProxy:The delegate type 'Foo' does not provide attribute 'bar'.",
+            "WARNING:pydlennon.patterns.proxy.FooProxy:Overwriting an existing attribute 'g'."
         ])
 
     # ----
@@ -96,15 +96,16 @@ class ProxyTestCase(unittest.TestCase):
 
         foo_proxy = FooProxy()
 
-        with self.assertLogs("patterns.proxy.FooProxy", level="INFO") as cm:
+        with self.assertLogs("pydlennon.patterns.proxy.FooProxy", level="INFO") as cm:
+
             self.assertEqual(FooProxy.c(), "Foo.c")
             self.assertEqual(foo_proxy.c(), "Foo.c")
             self.assertEqual(foo_proxy.g(), "foo.g")
 
         self.assertEqual(cm.output, [
-            "INFO:patterns.proxy.FooProxy:Foo<class>.c<getter>",
-            "INFO:patterns.proxy.FooProxy:Foo<instance>.c<getter>",
-            "INFO:patterns.proxy.FooProxy:Foo<instance>.g<getter>"
+            "INFO:pydlennon.patterns.proxy.FooProxy:Foo<class>.c<getter>",
+            "INFO:pydlennon.patterns.proxy.FooProxy:Foo<instance>.c<getter>",
+            "INFO:pydlennon.patterns.proxy.FooProxy:Foo<instance>.g<getter>"
         ])
 
     # ----
@@ -155,5 +156,11 @@ class ProxyTestCase(unittest.TestCase):
 # -----------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    # python3 -m unittest -b tests/patterns/test_proxy.py
-    pass
+    """
+    # Run from tests subdirectory
+    $ python3 -m unittest discover -b -s ..
+
+    # OR, from package root directory
+    $ python3 -m unittest discover
+    """
+    unittest.main()

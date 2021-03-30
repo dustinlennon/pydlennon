@@ -3,8 +3,8 @@ import logging
 
 import re
 
-import extensions.pandas as xpd
-from patterns.proxy import Proxy
+import pydlennon.extensions.pandas as xpd
+from pydlennon.patterns.proxy import Proxy
 
 
 _attr_rex = re.compile(r"^_{0,1}[A-Za-z0-9][A-Za-z0-9_]*")
@@ -16,11 +16,11 @@ categoricaldtype_attrs =    [ a for a in dir(xpd.CategoricalDtype) if _attr_rex.
                           + ['__repr__', '__hash__', '__getstate__']
 
 
-@Proxy("_cat_dtype", xpd.CategoricalDtype, categoricaldtype_attrs)
+@Proxy("_cat_dtype", xpd.CategoricalDtype, categoricaldtype_attrs, logging_level=logging.INFO)
 class ExtCategoricalDtype(xpd.PandasExtensionDtype):
     """
     Behaves very similarly to the usual CategoricalDtype but with added functionality; namely, 
-    multiple codings are maintained within the object.
+    metadata codings are maintained within the object.
     """
     name = "wrapped_category"
 
@@ -58,12 +58,20 @@ class ExtCategoricalDtype(xpd.PandasExtensionDtype):
 
 # ---------------------------------------------------------------------------------
 
-categorical_attrs_blacklist = ['_from_sequence_of_strings', '_concat_same_type', '_from_sequence', 'dtype', '_dtype']
+categorical_attrs_blacklist = [
+    '_from_sequence_of_strings', 
+    '_concat_same_type', 
+    '_from_sequence', 
+    'dtype', 
+    '_dtype', 
+    'take',
+    '_constructor'
+]
 categorical_attrs =     [ a for a in dir(xpd.Categorical) if _attr_rex.match(a) and a not in categorical_attrs_blacklist] \
                       + ['__repr__', '__len__', "__getitem__"]
 
-@Proxy("_cat", xpd.Categorical, categorical_attrs)
-class ExtCategorical(xpd.ExtensionArray):       
+@Proxy("_cat", xpd.Categorical, categorical_attrs, logging_level=logging.INFO)
+class ExtCategorical(xpd.ExtensionArray):
 
     _dtype = ExtCategoricalDtype.build_default()
 
@@ -78,6 +86,11 @@ class ExtCategorical(xpd.ExtensionArray):
     @property
     def dtype(self):
         return self._dtype
+
+    @property
+    def _constructor(self):
+        self._logger.info("ExtCategorical._constructor")
+        return ExtCategorical
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy=False):
@@ -112,6 +125,7 @@ class ExtCategorical(xpd.ExtensionArray):
         codes = xpd.recode_for_categories(inferred_codes, cats, categories)
 
         return cls(codes, dtype=dtype, fastpath=True)
+
 
     @classmethod
     def _concat_same_type(cls, to_union, axis=0):
@@ -184,6 +198,28 @@ class ExtCategorical(xpd.ExtensionArray):
         return instance
 
 
+    def take(self, indices, *, allow_fill = False, fill_value = None, axis = 0):
+        self._logger.info("ExtCategorical.take")
+        if allow_fill:
+            fill_value = self._validate_fill_value(fill_value)
+
+        from pandas.core.algorithms import take
+        new_data = take(
+            self._ndarray,
+            indices,
+            allow_fill=allow_fill,
+            fill_value=fill_value,
+            axis=axis,
+        )
+
+        import pdb
+        pdb.set_trace()
+
+        df = self._from_backing_data(new_data)
+        return df
+
+
+
 # ---------------------------------------------------------------------------------
 
 xcat_attrs_blacklist = ['map']
@@ -220,5 +256,32 @@ class ExtCategoricalAccessor:
 
 if __name__ == "__main__":
     # See tests/extensions/test_ext_categorical.py for usage
-    pass
+
+    import numpy as np
+    import pandas as pd
+    import logging
+
+    from pydlennon.extensions.pandas.ext_categorical import ExtCategoricalDtype, ExtCategorical
+    from pydlennon.tests.extensions.test_ext_categorical import ProxyTestCase
+
+    logging.basicConfig(level=logging.INFO)
+
+    self = ProxyTestCase()
+    self.setUp()
+
+    kw = {
+        'dtype' : {
+            'gender' : self.xcdtype_gender,
+            'race'   : self.xcdtype_race
+        },
+        'usecols' : ['record_id', 'gender', 'race']
+    }
+    df  = self.loader(**kw)
+    df.loc[19644, 'race'] = np.nan
+
+    df.gender.xcat.relevel(1)
+
+    z  = df.dropna()
+    # z.gender.xcat.relevel(1)
+
 
