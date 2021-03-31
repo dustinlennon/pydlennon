@@ -135,11 +135,11 @@ class Proxy(object):
             try:
                 delegate = getattr(self, var_name)
             except AttributeError as e:
-                self._logger.error(msg)
+                # self._logger.error(msg)
                 raise AttributeError(msg) from e
 
             if not isinstance(delegate, var_type):
-                self._logger.error(msg)
+                # self._logger.error(msg)
                 raise TypeError(msg)
 
         setattr(wrapped_init, "_wrapped", True)

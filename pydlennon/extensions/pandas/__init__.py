@@ -27,3 +27,9 @@ from pandas.core.dtypes.cast import (
 from pandas.core.arrays.categorical import recode_for_categories
 
 from pandas.api.extensions import register_series_accessor
+
+from typing import (
+    cast,
+)
+
+

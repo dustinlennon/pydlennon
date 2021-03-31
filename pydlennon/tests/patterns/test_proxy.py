@@ -56,7 +56,7 @@ class ProxyTestCase(unittest.TestCase):
             def __init__(self):
                 pass
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(AttributeError) as error:
             foo_proxy = FooProxy()
 
 
