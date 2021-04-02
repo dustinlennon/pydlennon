@@ -162,3 +162,4 @@ class ExtCategoricalAccessor:
 
 if __name__ == "__main__":
     # See tests/extensions/test_ext_categorical.py for usage
+    pass

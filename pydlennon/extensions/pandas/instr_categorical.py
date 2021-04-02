@@ -17,7 +17,6 @@ import io
 
 import pandas as pd
 from pydlennon.patterns.instrumented import Instrumented
-import pydlennon.extensions.pandas.util as util
 import pydlennon.extensions.pandas as xpd
 
 # ---------------------------------------------------------------------------------
@@ -256,42 +255,5 @@ icd_race   = ICategoricalDtype((1,2))
 
 if __name__ == "__main__":
     # See tests/extensions/test_ext_categorical.py for usage
-
-    print("[script] instr_categorical.py [{0}]".format(__name__))
-
-    import numpy as np
-    import pandas as pd
-
-    import logging
-    logging.basicConfig(level=logging.INFO)
-
-    gds = util.gender_data_s
-    gdi = [int(i) for i in gds]
-
-    c0  = ICategorical._from_sequence(gds)
-    c1  = ICategorical._from_sequence(gdi, dtype=icd_gender)
-
-    kw = {
-        'dtype' : {
-            'gender' : icd_gender,
-            'race'   : icd_race
-        },
-        'usecols' : ['record_id', 'gender', 'race']
-    }
-    df  = util._read_csv(**kw)
-    df.loc[19644, 'race'] = np.nan
-
-
-    # # s = df.gender
-    # # m = {1: 'male', 2: 'female'}
-    # # s2 = s.map(m)
-    # # d2 = s.dtype(1)
-
-    # # ExtCategorical(s2, dtype=d2)
-
-
-    # # df.gender.xcat.relevel(1)
-
-    # # # z  = df.dropna()
-    # # # z.gender.xcat.relevel(1)
+    pass
 
