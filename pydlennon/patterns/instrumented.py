@@ -85,7 +85,7 @@ class Instrumented(object):
                 logger.debug( fmt(k, "classmethod") )
             
             elif isinstance(attr, property):
-                descriptor = PropertyDescriptor(klass, k, attr, logger)
+                # descriptor = PropertyDescriptor(klass, k, attr, logger)
                 logger.debug( fmt(k, "property") )
             
             elif isinstance(attr, types.FunctionType):

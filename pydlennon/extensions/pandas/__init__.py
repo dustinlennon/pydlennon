@@ -60,3 +60,4 @@ from pandas.io.formats import console
 from pandas.core.arrays.categorical import _get_codes_for_values
 from pandas.core.arrays.categorical import recode_for_categories
 from pandas.core.tools.numeric import to_numeric
+from pandas.api.extensions import register_series_accessor

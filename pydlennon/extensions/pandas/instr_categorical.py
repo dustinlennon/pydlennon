@@ -1,14 +1,12 @@
-print("[module] instr_categorical.py [{0}]".format(__name__))
-
-try:
-    import IPython
-    ipy = IPython.get_ipython()
-    if ipy:
-        if  not 'autoreload' in ipy.magics_manager.shell.extension_manager.loaded:
-            ipy.run_line_magic("load_ext", "autoreload")
-            ipy.run_line_magic("autoreload","2")
-except ModuleNotFoundError:
-    pass
+# try:
+#     import IPython
+#     ipy = IPython.get_ipython()
+#     if ipy:
+#         if  not 'autoreload' in ipy.magics_manager.shell.extension_manager.loaded:
+#             ipy.run_line_magic("load_ext", "autoreload")
+#             ipy.run_line_magic("autoreload","2")
+# except ModuleNotFoundError:
+#     pass
 
 
 import numpy as np
@@ -24,14 +22,13 @@ import pydlennon.extensions.pandas as xpd
 
 # ---------------------------------------------------------------------------------
 
-@Instrumented()
+# @Instrumented()
 class ICategoricalDtype(pd.CategoricalDtype):
     name    = "icategory"
 
     @classmethod
     def construct_array_type(cls):
         return ICategorical
-
 
     @classmethod
     def _from_values_or_dtype(cls, values=None, categories=None, ordered = None, dtype = None):
@@ -41,42 +38,46 @@ class ICategoricalDtype(pd.CategoricalDtype):
 
         if dtype is not None:
             if isinstance(dtype, str):
-                if dtype == "icategory":
-                    dtype = ICategoricalDtype(categories, ordered)
+                if dtype == cls.name:
+                    dtype = cls(categories, ordered)
                 else:
                     raise ValueError(f"Unknown dtype {repr(dtype)}")
             elif categories is not None or ordered is not None:
                 raise ValueError(
                     "Cannot specify `categories` or `ordered` together with `dtype`."
                 )
-            elif not isinstance(dtype, ICategoricalDtype):
-                raise ValueError(f"Cannot not construct ICategoricalDtype from {dtype}")
+            elif not isinstance(dtype, cls):
+                raise ValueError(f"Cannot not construct {cls.__name__} from {dtype}")
         elif cls.is_dtype(values):
             dtype = values.dtype._from_categorical_dtype(values.dtype, categories, ordered)
         else:
-            dtype = ICategoricalDtype(categories, ordered)
+            dtype = cls(categories, ordered)
 
         return dtype
 
 
+    def _repr(self):
+        return pd.CategoricalDtype.__repr__(self)
+
     def __repr__(self):
-        s = super().__repr__()
+        s = self._repr()
         return "I{0}".format(s)
 
     def update_dtype(self, dtype):
         # Ref:./pandas/core/dtypes/dtypes.py:518
+        Klass = type(self)
 
         if isinstance(dtype, str) and dtype == "category":
             # dtype='category' should not change anything
             return self
         elif not self.is_dtype(dtype):
             raise ValueError(
-                f"a CategoricalDtype must be passed to perform an update, "
+                f"a {Klass.__name__} must be passed to perform an update, "
                 f"got {repr(dtype)}"
             )
         else:
             # from here on, dtype is a CategoricalDtype
-            dtype = xpd.cast(ICategoricalDtype, dtype)
+            dtype = xpd.cast(Klass, dtype)
 
         # update categories/ordered unless they've been explicitly passed as None
         new_categories = (
@@ -84,13 +85,13 @@ class ICategoricalDtype(pd.CategoricalDtype):
         )
         new_ordered = dtype.ordered if dtype.ordered is not None else self.ordered
 
-        return ICategoricalDtype(new_categories, new_ordered)
+        return Klass(new_categories, new_ordered)
 
 
 # ---------------------------------------------------------------------------------
 
 
-@Instrumented()
+# @Instrumented()
 class ICategorical(pd.Categorical):
     _dtype  = ICategoricalDtype(ordered=False)
     _typ    = "icategorical"
@@ -98,7 +99,9 @@ class ICategorical(pd.Categorical):
 
     def __init__(self, values, categories=None, ordered=None, dtype=None, fastpath=False):
         # Ref:./pandas/core/arrays/categorical.py:300
-        dtype = ICategoricalDtype._from_values_or_dtype(
+        Dtype = type(self._dtype)
+
+        dtype = Dtype._from_values_or_dtype(
             values, categories, ordered, dtype
         )
 
@@ -111,7 +114,7 @@ class ICategorical(pd.Categorical):
 
         if xpd.is_categorical_dtype(values):
             if dtype.categories is None:
-                dtype = ICategoricalDtype(values.categories, dtype.ordered)
+                dtype = Dtype(values.categories, dtype.ordered)
 
         elif not isinstance(values, (xpd.ABCIndexClass, xpd.ABCSeries)):
             values = xpd.maybe_infer_to_datetimelike(values, convert_dates=True)
@@ -140,7 +143,7 @@ class ICategorical(pd.Categorical):
                     "> 1 ndim Categorical are not supported at this time"
                 ) from err
 
-            dtype = ICategoricalDtype(categories, dtype.ordered)
+            dtype = Dtype(categories, dtype.ordered)
 
         elif xpd.is_categorical_dtype(values.dtype):
             old_codes = xpd.extract_array(values).codes
@@ -162,11 +165,11 @@ class ICategorical(pd.Categorical):
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy=False):
-        return ICategorical(scalars, dtype=dtype)
+        return cls(scalars, dtype=dtype)
 
     @property
     def _constructor(self):
-        return ICategorical
+        return type(self)
 
     @classmethod
     def _concat_same_type(cls, to_union):
@@ -181,10 +184,10 @@ class ICategorical(pd.Categorical):
         def _maybe_unwrap(x):
             if isinstance(x, (xpd.ABCCategoricalIndex, xpd.ABCSeries)):
                 return x._values
-            elif isinstance(x, ICategorical):
+            elif isinstance(x, cls):
                 return x
             else:
-                raise TypeError("all components to combine must be ICategorical")
+                raise TypeError(f"all components to combine must be {cls.__name__}")
 
         to_union = [_maybe_unwrap(x) for x in to_union]
         first = to_union[0]
@@ -228,15 +231,15 @@ class ICategorical(pd.Categorical):
         else:
             # ordered - to show a proper error message
             if all(c.ordered for c in to_union):
-                msg = "to union ordered ICategoricals, all categories must be the same"
+                msg = f"to union ordered {cls.__name__}s, all categories must be the same"
                 raise TypeError(msg)
             else:
-                raise TypeError("ICategorical.ordered must be the same")
+                raise TypeError(f"{cls.__name__}.ordered must be the same")
 
         if ignore_order:
             ordered = False
 
-        return ICategorical(new_codes, categories=categories, ordered=ordered, fastpath=True)
+        return cls(new_codes, categories=categories, ordered=ordered, fastpath=True)
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, *, dtype=None, copy=False):

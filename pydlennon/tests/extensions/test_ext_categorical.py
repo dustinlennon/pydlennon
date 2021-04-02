@@ -10,7 +10,7 @@ _testdata = """
 ,gender,ideo,partyid3,race
 19641,1.0,,1.0,1.0
 19642,2.0,,3.0,1.0
-19643,2.0,,3.0,1.0
+19643,2.0,,3.0,
 19644,2.0,,3.0,1.0
 19645,2.0,,2.0,2.0
 19646,2.0,,1.0,2.0
@@ -23,7 +23,7 @@ _testdata = """
 """.strip()
 
 
-class ProxyTestCase(unittest.TestCase):
+class ExtCategoricalTestCase(unittest.TestCase):
 
     def setUp(self):
         def _read_csv(**_kw):
@@ -54,7 +54,8 @@ class ProxyTestCase(unittest.TestCase):
 
         self.xcdtype_race   =   ExtCategoricalDtype( [
                                     (1, 'white'),
-                                    (2, 'black')
+                                    (2, 'black'),
+                                    (3, 'other')
                                 ])
 
         self.xcdtype_educ =     ExtCategoricalDtype([
@@ -80,30 +81,31 @@ class ProxyTestCase(unittest.TestCase):
     # ----
 
     def test_xcdtype_init(self):
-        self.assertEqual(repr(self.xcdtype_gender), "CategoricalDtype(categories=[1, 2], ordered=False)")
+        self.assertEqual(self.xcdtype_gender._ext, [(1,2),('male','female')] )
+        self.assertEqual(repr(self.xcdtype_gender), "ExtCategoricalDtype(categories=[1, 2], ordered=False)")
 
     # ----
 
     def test_xcdtype_init_ordered(self):
-        self.assertEqual(repr(self.xcdtype_educ), "CategoricalDtype(categories=[1, 2, 3, 4], ordered=True)")
+        self.assertEqual(repr(self.xcdtype_educ), "ExtCategoricalDtype(categories=[1, 2, 3, 4], ordered=True)")
 
     # ----
 
     def test_series_from_sequence(self):
         xc  = ExtCategorical._from_sequence_of_strings(self.gender_data_s, dtype=self.xcdtype_gender)
         s   = pd.Series(xc)
-        self.assertEqual(repr(s), u"0    1\n1    1\n2    2\n3    2\n4    1\n5    2\ndtype: wrapped_category")
+        self.assertEqual(repr(s), u"0    1\n1    1\n2    2\n3    2\n4    1\n5    2\ndtype: ext_category")
 
 
         xc  = ExtCategorical._from_sequence_of_strings(self.gender_data_i, dtype=self.xcdtype_gender)
         s   = pd.Series(xc)
-        self.assertEqual(repr(s), u"0    1\n1    1\n2    2\n3    2\n4    1\n5    2\ndtype: wrapped_category")
+        self.assertEqual(repr(s), u"0    1\n1    1\n2    2\n3    2\n4    1\n5    2\ndtype: ext_category")
 
     # ----
 
     def test_create_from_series(self):
         s   = pd.Series(self.gender_data_i, dtype=self.xcdtype_gender)
-        self.assertEqual(repr(s), u"0    1\n1    1\n2    2\n3    2\n4    1\n5    2\ndtype: wrapped_category")
+        self.assertEqual(repr(s), u"0    1\n1    1\n2    2\n3    2\n4    1\n5    2\ndtype: ext_category")
 
     # ----
 
@@ -133,7 +135,7 @@ class ProxyTestCase(unittest.TestCase):
                                      '5    college or advanced degree\n' \
                                      '6                  some college\n' \
                                      '7                   high school\n' \
-                                     'dtype: wrapped_category' )
+                                     'dtype: ext_category' )
 
     # ----
 
@@ -148,19 +150,91 @@ class ProxyTestCase(unittest.TestCase):
         self.assertEqual(type(df.gender.dtype), ExtCategoricalDtype)
 
         s = df.gender.xcat.relevel(1)
-        self.assertEqual(repr(s),  u'0       male\n' \
-                                    '1     female\n' \
-                                    '2     female\n' \
-                                    '3     female\n' \
-                                    '4     female\n' \
-                                    '5     female\n' \
-                                    '6       male\n' \
-                                    '7     female\n' \
-                                    '8       male\n' \
-                                    '9       male\n' \
-                                    '10    female\n' \
-                                    '11    female\n' \
-                                    'dtype: wrapped_category')
+        self.assertEqual(repr(s),  u"record_id\n" \
+                                    "19641      male\n" \
+                                    "19642    female\n" \
+                                    "19643    female\n" \
+                                    "19644    female\n" \
+                                    "19645    female\n" \
+                                    "19646    female\n" \
+                                    "19647      male\n" \
+                                    "19648    female\n" \
+                                    "19649      male\n" \
+                                    "19650      male\n" \
+                                    "19651    female\n" \
+                                    "19652    female\n" \
+                                    "dtype: ext_category")
+    # ----
+
+    def test_dropna(self):
+        kw = {
+            'dtype' : {
+                'gender' : self.xcdtype_gender,
+                'race'   : self.xcdtype_race
+            },
+            'usecols' : ['record_id', 'gender', 'race']
+        }
+        df          = self.loader(**kw)
+        df_clean    = df.dropna()
+        dtypes      = df_clean.dtypes
+
+        gender_coded    = df_clean.gender
+        gender          = gender_coded.xcat.relevel(1)
+
+        race_coded      = df_clean.race
+        race            = race_coded.xcat.relevel(1)
+
+
+        self.assertTrue( (dtypes == 'ext_category').all() )
+        self.assertListEqual( gender_coded.unique().to_list(),  [1,2] ) 
+        self.assertListEqual( gender.unique().to_list(), ['male', 'female'])
+        self.assertListEqual( race.unique().to_list(), ['white', 'black'])
+        self.assertListEqual( race.dtype.categories.to_list(), ['white', 'black','other'])
+
+
+    # ----
+
+    def test_assign_to_dataframe(self):
+        kw = {
+            'dtype' : {
+                'gender' : self.xcdtype_gender,
+                'race'   : self.xcdtype_race
+            },
+            'usecols' : ['record_id', 'gender', 'race']
+        }
+        df  = self.loader(**kw)
+        df.loc[:,'xx'] = df.race.xcat.relevel(1)
+
+        self.assertEqual( 
+            repr(df.xx.head()),
+            u"record_id\n" \
+             "19641    white\n" \
+             "19642    white\n" \
+             "19643      NaN\n" \
+             "19644    white\n" \
+             "19645    black\n" \
+             "Name: xx, dtype: ext_category"
+        )
+
+
+
+    # ----
+
+    def test_zero_count_behavior(self):
+        kw = {
+            'dtype' : {
+                'gender' : self.xcdtype_gender,
+                'race'   : self.xcdtype_race
+            },
+            'usecols' : ['record_id', 'gender', 'race']
+        }
+        df  = self.loader(**kw)
+
+        race        = df.race.xcat.relevel(1)
+        zcv         = race.value_counts().reset_index().values.tolist()
+
+        self.assertListEqual( zcv, [['white', 8], ['black', 3], ['other', 0]] )
+
 
 
 # -----------------------------------------------------------------------------
