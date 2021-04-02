@@ -55,6 +55,19 @@ class PropertyDescriptor(InstrumentedDescriptor):
 
 class Instrumented(object):
 
+    instrumentable = [
+        staticmethod, 
+        classmethod, 
+        property, 
+        types.FunctionType
+    ]
+
+    def __init__(self, include = [], exclude=[]):
+        self._instrument = set( self.instrumentable ).difference( exclude )
+
+        if len(include) > 0:
+            self._instrument = set( include ).intersection( self._instrument )
+
     def _set_logger(self, klass):
         logger_id = "{0}.{1}".format(__name__, klass.__name__)
         logger = logging.getLogger( logger_id ) 
@@ -77,20 +90,24 @@ class Instrumented(object):
 
             fmt = lambda k,v: "{0:20} {1}".format(k,v)
             if isinstance(attr, staticmethod):
-                descriptor = StaticmethodDescriptor(klass, k, attr, logger)
                 logger.debug( fmt(k, "staticmethod") )
+                if staticmethod in self._instrument:
+                    descriptor = StaticmethodDescriptor(klass, k, attr, logger)
 
             elif isinstance(attr, classmethod):
-                descriptor = ClassmethodDescriptor(klass, k, attr, logger)
                 logger.debug( fmt(k, "classmethod") )
+                if classmethod in self._instrument:
+                    descriptor = ClassmethodDescriptor(klass, k, attr, logger)
             
             elif isinstance(attr, property):
-                # descriptor = PropertyDescriptor(klass, k, attr, logger)
                 logger.debug( fmt(k, "property") )
+                if property in self._instrument:
+                    descriptor = PropertyDescriptor(klass, k, attr, logger)
             
             elif isinstance(attr, types.FunctionType):
-                descriptor = InstancemethodDescriptor(klass, k, attr, logger)
                 logger.debug( fmt(k, "types.FunctionType") )
+                if types.FunctionType in self._instrument:
+                    descriptor = InstancemethodDescriptor(klass, k, attr, logger)
 
             elif isinstance(attr, types.BuiltinMethodType):
                 logger.debug( fmt(k, "types.BuiltinMethodType") )
@@ -126,7 +143,7 @@ class Instrumented(object):
                 logger.debug( fmt(k, "NoneType") )
 
             else:
-                logger.debug( fmt(k, "---") )
+                logger.debug( fmt(k, type(attr)) )
 
             if not descriptor is None:
                 setattr(klass, k, descriptor)
@@ -139,4 +156,3 @@ class Instrumented(object):
 if __name__ == '__main__':
     # See tests/patterns/instrumented.py for usage
     pass
-

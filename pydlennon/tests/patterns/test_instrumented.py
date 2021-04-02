@@ -45,21 +45,7 @@ class InstrumentedTestCase(unittest.TestCase):
         self.Base = Base
         self.Derived = Derived
 
-
-        # logging.basicConfig(level=logging.DEBUG)
-        # self.logger = logging.getLogger()
-
-
-    def test_decorator_on_definition(self):
-        Base = self.Base
-        Derived = self.Derived
-
-        with self.assertLogs("pydlennon.patterns.instrumented.Foo", level='DEBUG') as cm:
-            @Instrumented()
-            class Foo(Derived):
-                pass
-
-        dtypes = {
+        self.dtypes = {
             "__repr__": "types.WrapperDescriptorType",
             "__hash__": "types.WrapperDescriptorType",
             "__str__": "types.WrapperDescriptorType",
@@ -94,20 +80,63 @@ class InstrumentedTestCase(unittest.TestCase):
             "dc": "classmethod",
             "dp": "property",
             "dm": "types.FunctionType",
-            "_logger": "---"
+            "_logger": "<class 'logging.Logger'>"
         }
 
 
+
+        # logging.basicConfig(level=logging.DEBUG)
+        # self.logger = logging.getLogger()
+
+
+    def test_decorator_debug(self):
+        Base = self.Base
+        Derived = self.Derived
+
+        with self.assertLogs("pydlennon.patterns.instrumented.Foo", level='DEBUG') as cm:
+            @Instrumented()
+            class Foo(Derived):
+                pass
+
         for l in cm.output:
-            k,v = re.sub(r"^DEBUG:pydlennon.patterns.instrumented.Foo:", "", l).split()
-            self.assertTrue(k in dtypes)
-            self.assertTrue(dtypes[k] == v)
-            dtypes.pop(k)
+            k,v = re.sub(r"^DEBUG:pydlennon.patterns.instrumented.Foo:", "", l).split(maxsplit=1)
+            self.assertTrue(k in self.dtypes)
+            self.assertTrue(self.dtypes[k] == v)
+            self.dtypes.pop(k)
 
-        self.assertTrue( len(dtypes) == 0 )
+        self.assertTrue( len(self.dtypes) == 0 )
 
 
-    def test_instrumentation(self):
+    def _call_foo_class_methods(self, Foo):
+        Foo.bs()
+        Foo.bc()
+        Foo.bp
+        try:
+            Foo.bm()
+        except TypeError:
+            pass
+        Foo.ds()
+        Foo.dc()
+        Foo.dp
+        try:
+            Foo.dm()
+        except TypeError:
+            pass
+
+
+    def _call_foo_instance_methods(self, Foo):
+        foo = Foo()
+        foo.bs()
+        foo.bc()
+        foo.bp
+        foo.bm()
+        foo.ds()
+        foo.dc()
+        foo.dp
+        foo.dm()
+
+
+    def test_decorator_info(self):
         Base = self.Base
         Derived = self.Derived
 
@@ -117,20 +146,7 @@ class InstrumentedTestCase(unittest.TestCase):
 
         # class instrumentation
         with self.assertLogs("pydlennon.patterns.instrumented.Foo", level='INFO') as cm:
-            Foo.bs()
-            Foo.bc()
-            Foo.bp
-            try:
-                Foo.bm()
-            except TypeError:
-                pass
-            Foo.ds()
-            Foo.dc()
-            Foo.dp
-            try:
-                Foo.dm()
-            except TypeError:
-                pass
+            self._call_foo_class_methods(Foo)
 
         self.assertEqual(cm.output, [
             "INFO:pydlennon.patterns.instrumented.Foo:[staticmethod] bs",
@@ -146,15 +162,7 @@ class InstrumentedTestCase(unittest.TestCase):
 
         # instance instrumentation
         with self.assertLogs("pydlennon.patterns.instrumented.Foo", level='INFO') as cm:
-            foo = Foo()
-            foo.bs()
-            foo.bc()
-            foo.bp
-            foo.bm()
-            foo.ds()
-            foo.dc()
-            foo.dp
-            foo.dm()
+            self._call_foo_instance_methods(Foo)
 
         self.assertEqual(cm.output, [
             "INFO:pydlennon.patterns.instrumented.Foo:[instance] __init__",
@@ -167,3 +175,89 @@ class InstrumentedTestCase(unittest.TestCase):
             "INFO:pydlennon.patterns.instrumented.Foo:[property] dp",
             "INFO:pydlennon.patterns.instrumented.Foo:[instance] dm"
         ])
+
+
+    def test_decorator_info_exclude(self):
+        Base = self.Base
+        Derived = self.Derived
+
+        @Instrumented(exclude=[property])
+        class Foo(Derived):
+            pass
+
+        # class instrumentation
+        with self.assertLogs("pydlennon.patterns.instrumented.Foo", level='INFO') as cm:
+            self._call_foo_class_methods(Foo)
+
+        self.assertEqual(cm.output, [
+            "INFO:pydlennon.patterns.instrumented.Foo:[staticmethod] bs",
+            "INFO:pydlennon.patterns.instrumented.Foo:[classmethod] bc",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[property] bp",
+            "INFO:pydlennon.patterns.instrumented.Foo:[instance] bm",
+            "INFO:pydlennon.patterns.instrumented.Foo:[staticmethod] ds",
+            "INFO:pydlennon.patterns.instrumented.Foo:[classmethod] dc",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[property] dp",
+            "INFO:pydlennon.patterns.instrumented.Foo:[instance] dm",
+        ])
+
+
+        # instance instrumentation
+        with self.assertLogs("pydlennon.patterns.instrumented.Foo", level='INFO') as cm:
+            self._call_foo_instance_methods(Foo)
+
+        self.assertEqual(cm.output, [
+            "INFO:pydlennon.patterns.instrumented.Foo:[instance] __init__",
+            "INFO:pydlennon.patterns.instrumented.Foo:[staticmethod] bs",
+            "INFO:pydlennon.patterns.instrumented.Foo:[classmethod] bc",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[property] bp",
+            "INFO:pydlennon.patterns.instrumented.Foo:[instance] bm",
+            "INFO:pydlennon.patterns.instrumented.Foo:[staticmethod] ds",
+            "INFO:pydlennon.patterns.instrumented.Foo:[classmethod] dc",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[property] dp",
+            "INFO:pydlennon.patterns.instrumented.Foo:[instance] dm"
+        ])
+
+
+    def test_decorator_info_include(self):
+        Base = self.Base
+        Derived = self.Derived
+
+        @Instrumented(include=[staticmethod, classmethod])
+        class Foo(Derived):
+            pass
+
+        # class instrumentation
+        with self.assertLogs("pydlennon.patterns.instrumented.Foo", level='INFO') as cm:
+            self._call_foo_class_methods(Foo)
+
+        self.assertEqual(cm.output, [
+            "INFO:pydlennon.patterns.instrumented.Foo:[staticmethod] bs",
+            "INFO:pydlennon.patterns.instrumented.Foo:[classmethod] bc",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[property] bp",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[instance] bm",
+            "INFO:pydlennon.patterns.instrumented.Foo:[staticmethod] ds",
+            "INFO:pydlennon.patterns.instrumented.Foo:[classmethod] dc",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[property] dp",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[instance] dm",
+        ])
+
+
+        # instance instrumentation
+        with self.assertLogs("pydlennon.patterns.instrumented.Foo", level='INFO') as cm:
+            self._call_foo_instance_methods(Foo)
+
+        self.assertEqual(cm.output, [
+            # "INFO:pydlennon.patterns.instrumented.Foo:[instance] __init__",
+            "INFO:pydlennon.patterns.instrumented.Foo:[staticmethod] bs",
+            "INFO:pydlennon.patterns.instrumented.Foo:[classmethod] bc",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[property] bp",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[instance] bm",
+            "INFO:pydlennon.patterns.instrumented.Foo:[staticmethod] ds",
+            "INFO:pydlennon.patterns.instrumented.Foo:[classmethod] dc",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[property] dp",
+            # "INFO:pydlennon.patterns.instrumented.Foo:[instance] dm"
+        ])
+
+
+if __name__ == '__main__':
+    unittest.main()

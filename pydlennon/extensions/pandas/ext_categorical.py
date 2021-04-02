@@ -25,7 +25,7 @@ from pydlennon.extensions.pandas.instr_categorical import ICategoricalDtype, ICa
 
 # ---------------------------------------------------------------------------------
 
-@Instrumented()
+# @Instrumented()
 class ExtCategoricalDtype(ICategoricalDtype):
     name    = "ext_category"
 
@@ -69,7 +69,6 @@ class ExtCategoricalDtype(ICategoricalDtype):
                 self._ext = list(zip(*categories))
                 categories = self._ext[0]   
 
-            self._logger.info(f"\t ---->  {self._ext}")
             categories = self.validate_categories(categories, fastpath=fastpath)
 
         self._categories = categories
@@ -118,7 +117,6 @@ class ExtCategoricalDtype(ICategoricalDtype):
 
 # ---------------------------------------------------------------------------------
 
-@Instrumented()
 class ExtCategorical(ICategorical):
     _dtype  = ExtCategoricalDtype(ordered=False)
     _typ    = "ext_categorical"
