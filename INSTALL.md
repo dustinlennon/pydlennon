@@ -1,5 +1,11 @@
 
 
+Installation
+----
+
+Straight from github:
+
 ```bash
-pip install .
+pip install git+https://github.com/dustinlennon/pydlennon
 ```
+
